@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
+import { RegisterUserDto } from 'src/users/dto/create-user.dto';
 import { IUser } from 'src/users/user.interface';
 import { UsersService } from 'src/users/users.service';
 
@@ -40,4 +41,12 @@ export class AuthService {
             },
         };
     }
+    async register(user: RegisterUserDto) {
+        let newUser = await this.usersService.register(user);
+        return {
+            _id: newUser?._id,
+            createdAt: newUser?.createdAt
+        };
+    }
+
 }

@@ -1,5 +1,5 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
-import { CreateUserDto } from './dto/create-user.dto';
+import { CreateUserDto, RegisterUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { InjectModel } from '@nestjs/mongoose';
 import { User, UserDocument } from './schema/user.schema';
@@ -8,11 +8,17 @@ import { genSaltSync, hashSync, compareSync } from 'bcryptjs';
 import { IUser } from './user.interface';
 import mongoose from 'mongoose';
 import aqp from 'api-query-params';
+import { Role, RoleDocument } from 'src/role/schemas/role.schema';
+import { USER_ROLE } from 'src/databases/sampleData';
 @Injectable()
 export class UsersService {
   constructor(
     @InjectModel(User.name)
-    private userModel: SoftDeleteModel<UserDocument>) { }
+    private userModel: SoftDeleteModel<UserDocument>,
+    @InjectModel(Role.name)
+    private roleModel: SoftDeleteModel<RoleDocument>
+
+  ) { }
 
   getHashPassword = (password: string) => {
     const salt = genSaltSync(10);
@@ -35,6 +41,25 @@ export class UsersService {
       username, email, password: hasspassword, ...rest
     })
     return result;
+  }
+  async register(user: RegisterUserDto) {
+    const { username, email, password, age, gender, address } = user;
+    await this.checkExists('email', email);
+    await this.checkExists('username', username);
+
+    //fetch user role
+    //const userRole = await this.roleModel.findOne({ name: USER_ROLE });
+
+    const hashPassword = this.getHashPassword(password);
+    let newRegister = await this.userModel.create({
+      username, email,
+      password: hashPassword,
+      age,
+      gender,
+      address,
+      role: "User"
+    })
+    return newRegister;
   }
 
   async findAll(currentPage: number, limit: number, qs: string) {
