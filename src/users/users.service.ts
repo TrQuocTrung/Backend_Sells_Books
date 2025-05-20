@@ -5,6 +5,8 @@ import { InjectModel } from '@nestjs/mongoose';
 import { User, UserDocument } from './schema/user.schema';
 import { SoftDeleteModel } from 'soft-delete-plugin-mongoose';
 import { genSaltSync, hashSync, compareSync } from 'bcryptjs';
+import { IUser } from './user.interface';
+import mongoose from 'mongoose';
 @Injectable()
 export class UsersService {
   constructor(
@@ -42,12 +44,40 @@ export class UsersService {
     return `This action returns a #${id} user`;
   }
 
-  update(id: number, updateUserDto: UpdateUserDto) {
-    return `This action updates a #${id} user`;
+  async update(id: string, updateUserDto: UpdateUserDto, user: IUser) {
+    const updated = await this.userModel.updateOne(
+      { _id: id },
+      {
+        ...updateUserDto,
+        updatedBy: {
+          _id: user._id,
+          email: user.email
+        }
+      });
+    return updated;
   }
 
-  remove(id: number) {
-    return `This action removes a #${id} user`;
+
+  async remove(id: string, user: IUser) {
+    if (!mongoose.Types.ObjectId.isValid(id))
+      return `not found user`;
+
+    const foundUser = await this.userModel.findById(id);
+    if (foundUser && foundUser.email === "admin@gmail.com") {
+      throw new BadRequestException("Không thể xóa tài khoản admin@gmail.com");
+    }
+
+    await this.userModel.updateOne(
+      { _id: id },
+      {
+        deletedBy: {
+          _id: user._id,
+          email: user.email
+        }
+      })
+    return this.userModel.softDelete({
+      _id: id
+    })
   }
 
   findOneByUsername(identifier: string) {
