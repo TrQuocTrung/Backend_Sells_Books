@@ -105,10 +105,12 @@ export class UsersService {
   }
 
   async update(id: string, updateUserDto: UpdateUserDto, user: IUser) {
+    const { password, ...rest } = updateUserDto;
     const updated = await this.userModel.updateOne(
       { _id: id },
       {
-        ...updateUserDto,
+        ...rest,
+        ...(password ? { password: this.getHashPassword(password) } : {}),
         updatedBy: {
           _id: user._id,
           email: user.email
