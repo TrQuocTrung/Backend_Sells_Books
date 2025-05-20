@@ -1,8 +1,12 @@
 import { Module } from '@nestjs/common';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
-import { ConfigModule } from '@nestjs/config';
+import { ConfigModule, ConfigService } from '@nestjs/config';
 import { UsersModule } from './users/users.module';
+import { MongooseModule } from '@nestjs/mongoose';
+import { RoleModule } from './role/role.module';
+import { PermissionModule } from './permission/permission.module';
+import { AuthModule } from './auth/auth.module';
 
 @Module({
   imports: [
@@ -10,9 +14,23 @@ import { UsersModule } from './users/users.module';
     ConfigModule.forRoot({
       isGlobal: true
     }),
-    UsersModule,
+    MongooseModule.forRootAsync({
+      imports: [ConfigModule],
+      useFactory: async (configService: ConfigService) => ({
+        uri: configService.get<string>('MONGODB_URI'),
+        // connectionFactory: (connection) => {
+        //   connection.plugin(softDeletePlugin)
+        // }
+      }),
+      inject: [ConfigService],
 
+    }),
+    UsersModule,
+    RoleModule,
+    PermissionModule,
+    AuthModule,
   ],
+
   controllers: [AppController],
   providers: [AppService],
 })
