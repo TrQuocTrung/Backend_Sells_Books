@@ -1,6 +1,7 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import mongoose, { HydratedDocument, Types } from 'mongoose';
 import { softDeletePlugin } from 'soft-delete-plugin-mongoose';
+import { User } from 'src/users/schema/user.schema';
 
 export type ReviewDocument = HydratedDocument<Review>;
 
@@ -24,13 +25,13 @@ export class Review {
         email: string;
     };
 
-    @Prop({ type: Object })
+    @Prop({ type: mongoose.Schema.Types.ObjectId, ref: 'User' })
     updatedBy: {
         _id: Types.ObjectId;
         email: string;
     };
 
-    @Prop({ type: Object })
+    @Prop({ type: mongoose.Schema.Types.ObjectId, ref: User.name })
     deletedBy: {
         _id: Types.ObjectId;
         email: string;
