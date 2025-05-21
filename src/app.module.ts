@@ -9,6 +9,7 @@ import { PermissionModule } from './permission/permission.module';
 import { AuthModule } from './auth/auth.module';
 import { DatabasesModule } from './databases/databases.module';
 import { BooksModule } from './books/books.module';
+import { FilesModule } from './files/files.module';
 
 @Module({
   imports: [
@@ -33,6 +34,7 @@ import { BooksModule } from './books/books.module';
     AuthModule,
     DatabasesModule,
     BooksModule,
+    FilesModule,
   ],
 
   controllers: [AppController],

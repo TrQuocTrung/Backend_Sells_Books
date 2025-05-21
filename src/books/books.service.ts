@@ -50,7 +50,6 @@ export class BooksService {
       .skip(offset)
       .limit(defaultLimit)
       .sort(sort as any)
-      .select('-password')
       .populate(population)
       .exec();
 

@@ -9,7 +9,8 @@ export class Book {
 
     @Prop({ required: true })
     author: string;
-
+    @Prop()
+    image: string
     @Prop()
     description: string;  // mô tả sách, không bắt buộc
 
