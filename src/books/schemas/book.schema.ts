@@ -1,11 +1,11 @@
 import { Prop, Schema, SchemaFactory } from "@nestjs/mongoose";
-import mongoose, { HydratedDocument } from "mongoose";
+import mongoose, { HydratedDocument, Types } from "mongoose";
 import { softDeletePlugin } from "soft-delete-plugin-mongoose";
 export type BookDocument = HydratedDocument<Book>;
 @Schema({ timestamps: true })
 export class Book {
     @Prop({ required: true })
-    title: string;
+    name: string;
 
     @Prop({ required: true })
     author: string;
@@ -23,7 +23,7 @@ export class Book {
     @Prop({ default: 0 })
     soldQuantity: number;
 
-    @Prop({ type: [String], default: [] })
+    @Prop({ type: [Types.ObjectId], ref: 'Category', default: [] })
     categories: string[];
     @Prop({ type: Object })
     createdBy: {

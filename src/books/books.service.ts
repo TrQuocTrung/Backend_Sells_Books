@@ -1,4 +1,4 @@
-import { BadRequestException, Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { CreateBookDto } from './dto/create-book.dto';
 import { UpdateBookDto } from './dto/update-book.dto';
 import { InjectModel } from '@nestjs/mongoose';
@@ -6,7 +6,8 @@ import { Book, BookDocument } from './schemas/book.schema';
 import { SoftDeleteModel } from 'soft-delete-plugin-mongoose';
 import { IUser } from 'src/users/user.interface';
 import aqp from 'api-query-params';
-
+import * as path from 'path';
+import * as fs from 'fs';
 @Injectable()
 export class BooksService {
   constructor(
@@ -18,20 +19,39 @@ export class BooksService {
       throw new BadRequestException('Giá sách phải lớn hơn 0');
     }
   }
-  async create(createBookDto: CreateBookDto, user: IUser) {
+  async create(createBookDto: CreateBookDto, user: IUser, imageFileName?: string) {
     const { name, author, stock, price, soldQuantity, categories, description } = createBookDto;
     this.validatePrice(createBookDto.price);
+    // Đường dẫn file ảnh upload (bạn chỉnh lại cho đúng folder upload của bạn)
+
     const isExist = await this.bookModel.findOne({ name });
     if (isExist) {
       throw new BadRequestException(`Sách  với tên="${name}" đã tồn tại vui lòng nhập tên khác!`)
     }
     return await this.bookModel.create({
-      name, author, stock, price, soldQuantity, categories, description,
+      name, author, stock, price, soldQuantity, categories, description, image: imageFileName ?? null,
       createdBy: {
         _id: user._id,
         email: user.email
       }
     });
+  }
+  async updateBookImage(bookId: string, imageFileName: string) {
+    // Kiểm tra book có tồn tại
+    const book = await this.bookModel.findById(bookId);
+    if (!book) {
+      // Xóa file ảnh đã upload vì book không tồn tại
+      const filePath = path.join(process.cwd(), 'books', imageFileName);
+      if (fs.existsSync(filePath)) {
+        fs.unlinkSync(filePath);
+      }
+      throw new NotFoundException('Book not found');
+    }
+
+    // Cập nhật trường ảnh
+    book.image = imageFileName;
+    await book.save();
+    return book;
   }
 
   async findAll(currentPage: number, limit: number, qs: string) {
@@ -68,12 +88,14 @@ export class BooksService {
   async findOne(id: string) {
     return await this.bookModel.findById(id)
   }
-
-  async update(id: string, updateBookDto: UpdateBookDto, user: IUser) {
+  async update(id: string, updateBookDto: UpdateBookDto, user: IUser, imageFileName?: string) {
     if (updateBookDto.price !== undefined) {
       this.validatePrice(updateBookDto.price);
     }
-
+    const book = await this.bookModel.findById(id);
+    if (!book) {
+      throw new NotFoundException('Book not found');
+    }
     const updated = await this.bookModel.updateOne(
       { _id: id },
       {
@@ -82,9 +104,9 @@ export class BooksService {
           _id: user._id,
           email: user.email
         }
-      }
+      },
+      { new: true }
     );
-
     return updated;
   }
 

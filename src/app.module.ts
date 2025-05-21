@@ -10,6 +10,7 @@ import { AuthModule } from './auth/auth.module';
 import { DatabasesModule } from './databases/databases.module';
 import { BooksModule } from './books/books.module';
 import { FilesModule } from './files/files.module';
+import { CategoryModule } from './category/category.module';
 
 @Module({
   imports: [
@@ -35,6 +36,7 @@ import { FilesModule } from './files/files.module';
     DatabasesModule,
     BooksModule,
     FilesModule,
+    CategoryModule,
   ],
 
   controllers: [AppController],

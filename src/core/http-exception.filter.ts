@@ -8,18 +8,17 @@ export class HttpExceptionFilter implements ExceptionFilter {
         const response = ctx.getResponse<Response>();
         const request = ctx.getRequest<Request>();
         const status = exception.getStatus();
-
+        const exceptionResponse = exception.getResponse();
         response
             .status(status)
             .json({
-                // statusCode: status,
-                // timestamp: new Date().toISOString(),
-                // path: request.url,
-
-                error: "Payload Too Large",
-                message: "File too large customize",
-                statusCode: status
-
+                statusCode: status,
+                error: exception.name,
+                message:
+                    typeof exceptionResponse === 'string'
+                        ? exceptionResponse
+                        : (exceptionResponse as any).message || 'Unexpected error',
+                path: request.url,
             });
     }
 }
