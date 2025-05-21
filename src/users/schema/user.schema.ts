@@ -1,6 +1,7 @@
 import { Prop, Schema, SchemaFactory } from "@nestjs/mongoose";
 import mongoose, { HydratedDocument } from "mongoose";
 import { softDeletePlugin } from "soft-delete-plugin-mongoose";
+import { Role } from "src/role/schemas/role.schema";
 export type UserDocument = HydratedDocument<User>;
 @Schema({ _id: false })
 class Profile {
@@ -26,8 +27,8 @@ export class User {
     @Prop()
     password: string
 
-    @Prop()
-    role: string
+    @Prop({ type: mongoose.Schema.Types.ObjectId, ref: Role.name })
+    role: mongoose.Schema.Types.ObjectId
 
     @Prop({ type: () => Profile })
     profile: Profile

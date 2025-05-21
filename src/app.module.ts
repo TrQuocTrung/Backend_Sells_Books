@@ -11,6 +11,8 @@ import { DatabasesModule } from './databases/databases.module';
 import { BooksModule } from './books/books.module';
 import { FilesModule } from './files/files.module';
 import { CategoryModule } from './category/category.module';
+import { OrderModule } from './order/order.module';
+import { ReviewModule } from './review/review.module';
 
 @Module({
   imports: [
@@ -37,6 +39,8 @@ import { CategoryModule } from './category/category.module';
     BooksModule,
     FilesModule,
     CategoryModule,
+    OrderModule,
+    ReviewModule,
   ],
 
   controllers: [AppController],
