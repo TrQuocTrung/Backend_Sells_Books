@@ -151,4 +151,18 @@ export class UsersService {
   isValidPassword(password: string, hash: string) {
     return compareSync(password, hash);
   }
+
+  updateUserToken = async (refreshToken: string, _id: string) => {
+    return await this.userModel.updateOne(
+      { _id },
+      { refreshToken }
+    )
+  }
+  findUserByToken = async (refreshToken: string) => {
+    return await this.userModel.findOne({ refreshToken })
+      .populate({
+        path: "role",
+        select: { name: 1 }
+      });
+  }
 }

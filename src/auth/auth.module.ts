@@ -8,8 +8,12 @@ import * as ms from 'ms';
 import { UsersModule } from 'src/users/users.module';
 import { LocalStrategy } from './passport/local.strategy';
 import { JwtStrategy } from './passport/jwt.strategy';
+import { RoleModule } from 'src/role/role.module';
 @Module({
-  imports: [UsersModule, PassportModule,
+  imports: [
+    UsersModule,
+    PassportModule,
+    RoleModule,
     JwtModule.registerAsync({
       imports: [ConfigModule],
       useFactory: async (configService: ConfigService) => ({
