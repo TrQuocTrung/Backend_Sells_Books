@@ -51,8 +51,6 @@ export class JwtAuthGuard extends AuthGuard('jwt') {
         if (!isExist && !isSkipPermission) {
             throw new ForbiddenException("Bạn không có quyền để truy cập endpoint này!")
         }
-
-
         return user;
     }
 }

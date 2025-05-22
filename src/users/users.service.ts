@@ -145,6 +145,9 @@ export class UsersService {
   findOneByUsername(identifier: string) {
     return this.userModel.findOne({
       $or: [{ username: identifier }, { email: identifier }]
+    }).populate({
+      path: "role",
+      select: { name: 1 }
     });
   }
 

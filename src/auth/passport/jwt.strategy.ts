@@ -1,14 +1,15 @@
 
 import { ExtractJwt, Strategy } from 'passport-jwt';
 import { PassportStrategy } from '@nestjs/passport';
-import { Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { IUser } from 'src/users/user.interface';
 import { RoleService } from 'src/role/role.service';
 
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy) {
-    constructor(private configService: ConfigService,
+    constructor(
+        private configService: ConfigService,
         private roleService: RoleService,
     ) {
         super({
@@ -24,6 +25,9 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
         const userRole = role as unknown as { _id: string; name: string }
         const temp = (await this.roleService.findOne(userRole._id)).toObject();
 
+        if (!temp) {
+            throw new BadRequestException("Role không tồn tại trong hệ thống");
+        }
         //req.user
         return {
             _id,
