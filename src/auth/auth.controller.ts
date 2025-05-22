@@ -17,8 +17,11 @@ export class AuthController {
   @Public()
   @Post('/login')
   @UseGuards(LocalAuthGuard)
-  handleLogin(@Req() req) {
-    return this.authService.login(req.user);
+  handleLogin(
+    @Req() req,
+    @Res({ passthrough: true }) response: Response
+  ) {
+    return this.authService.login(req.user, response);
   }
   @Public()
   @ResponseMessage("Register a new user")
