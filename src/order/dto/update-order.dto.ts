@@ -16,10 +16,6 @@ export class OrderItemDto {
     @Min(1)
     quantity: number;
 
-    @IsNotEmpty()
-    @IsNumber()
-    @Min(0)
-    price: number; // giá tại thời điểm đặt
 }
 
 // DTO cho cập nhật danh sách items trong đơn hàng

@@ -42,7 +42,7 @@ export class AuthService {
             _id,
             username,
             email,
-            role
+            role: { _id: role._id, name: role.name }
         };
 
         const refresh_token = this.createRefreshToken(payload);

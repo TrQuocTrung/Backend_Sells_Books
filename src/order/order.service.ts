@@ -7,12 +7,16 @@ import { SoftDeleteModel } from 'soft-delete-plugin-mongoose';
 import { IUser } from 'src/users/user.interface';
 import mongoose, { Types } from 'mongoose';
 import aqp from 'api-query-params';
+import { Book, BookDocument } from 'src/books/schemas/book.schema';
+import { User } from 'src/decotator/customize';
 
 @Injectable()
 export class OrderService {
   constructor(
     @InjectModel(Order.name)
-    private orderModel: SoftDeleteModel<OrderDocument>
+    private orderModel: SoftDeleteModel<OrderDocument>,
+    @InjectModel(Book.name)
+    private bookModel: SoftDeleteModel<BookDocument>,
   ) { }
 
   // Tính tổng tiền cho một đơn hàng
@@ -22,31 +26,70 @@ export class OrderService {
     }, 0);
   }
   async create(createOrderDto: CreateOrderDto, user: IUser) {
-    // Validate: chắc chắn có ít nhất một item
+    // Kiểm tra items không rỗng (giữ nguyên mã gốc)
     if (!createOrderDto.items || createOrderDto.items.length === 0) {
       throw new BadRequestException('Order must have at least one item');
     }
 
-    // Tính tổng tiền
-    const totalAmount = this.calculateTotalPrice(createOrderDto.items);
+    // SỬA: Thêm kiểm tra user._id hợp lệ
+    if (!mongoose.Types.ObjectId.isValid(user._id)) {
+      throw new BadRequestException('Invalid user ID');
+    }
 
-    // Tạo order mới
+    // SỬA: Bỏ calculateTotalPrice, tính totalAmount trong vòng lặp vì price lấy từ Book
+    let totalAmount = 0;
+    const orderItems: { book: Types.ObjectId; quantity: number; price: number }[] = []; // SỬA: Tạo mảng orderItems để lưu items với price từ Book
+    for (const item of createOrderDto.items) {
+      // SỬA: Thêm kiểm tra book ID hợp lệ
+      if (!mongoose.Types.ObjectId.isValid(item.book)) {
+        throw new BadRequestException(`Invalid book ID: ${item.book}`);
+      }
+
+      // SỬA: Lấy book từ bookModel để lấy price và kiểm tra stock
+      const book = await this.bookModel.findById(item.book);
+      if (!book) {
+        throw new NotFoundException(`Book ${item.book} not found`);
+      }
+
+      // SỬA: Kiểm tra stock đủ
+      if (book.stock < item.quantity) {
+        throw new BadRequestException(`Insufficient stock for ${book.name}`);
+      }
+
+      // SỬA: Lấy price từ book thay vì item.price
+      const price = book.price;
+      if (!price || price <= 0) {
+        throw new BadRequestException(`Invalid price for ${book.name}`);
+      }
+
+      // SỬA: Tính totalAmount trong vòng lặp
+      totalAmount += price * item.quantity;
+
+      // SỬA: Tạo object OrderItem với price từ book
+      orderItems.push({
+        book: new Types.ObjectId(item.book),
+        quantity: item.quantity,
+        price,
+      });
+
+      // SỬA: Cập nhật stock của book
+      book.stock -= item.quantity;
+      await book.save();
+    }
+
+    // SỬA: Sử dụng orderItems đã tạo thay vì map trực tiếp từ createOrderDto.items
     const newOrder = new this.orderModel({
       user: user._id,
-      items: createOrderDto.items.map(item => ({
-        book: new Types.ObjectId(item.book), // đảm bảo đúng ObjectId
-        quantity: item.quantity,
-        price: item.price,
-      })),
-      totalAmount,
-      status: 'pending', // trạng thái mặc định
+      items: orderItems, // Sử dụng mảng đã xử lý
+      totalAmount, // Sử dụng totalAmount đã tính
+      status: 'pending',
       createdBy: {
         _id: user._id,
         email: user.email,
       },
     });
 
-    return await newOrder.save();
+    return (await newOrder.save()).populate('user', '_id email');
   }
 
   async findAll(currentPage: number, limit: number, qs: string) {
@@ -82,7 +125,10 @@ export class OrderService {
 
   async findOne(id: string) {
     if (!mongoose.Types.ObjectId.isValid(id)) {
-      throw new BadRequestException("not found Order")
+      throw new BadRequestException("ID không hợp lệ");
+    }
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      throw new BadRequestException("Không tìm thấy order");
     }
 
     return await this.orderModel.findById(id);
@@ -93,9 +139,9 @@ export class OrderService {
   }
 
   async remove(id: string, user: IUser) {
-    if (!mongoose.Types.ObjectId.isValid(id))
-      return `not found order`;
-
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      throw new BadRequestException("ID không hợp lệ");
+    }
     const foundUser = await this.orderModel.findById(id);
     if (!foundUser) {
       throw new NotFoundException("Không tìm thấy order");
@@ -114,32 +160,78 @@ export class OrderService {
     })
   }
   async findOrdersByUser(userId: string) {
-    return this.orderModel.find({ user: userId })
-      .populate('items.book') // nếu bạn muốn hiện thông tin sách
+    // SỬA: Kiểm tra userId hợp lệ
+    if (!mongoose.Types.ObjectId.isValid(userId)) {
+      throw new BadRequestException('User ID không hợp lệ');
+    }
+
+    // SỬA: Sửa cú pháp find từ { user } thành { user: userId }
+    return this.orderModel
+      .find({ user: userId, isDeleted: false }) // Thêm isDeleted: false cho soft delete
+      .populate('items.book', 'name price') // Chỉ lấy name và price
+      .sort({ createdAt: -1 }) // Sắp xếp mới nhất trước
       .exec();
   }
   // Update toàn bộ items (dành cho user khi status = pending, admin bất kể trạng thái)
   async updateItems(orderId: string, dto: UpdateOrderItemsDto, user: IUser) {
+
+    // Kiểm tra orderId hợp lệ
+    if (!mongoose.Types.ObjectId.isValid(orderId)) {
+      throw new BadRequestException('Invalid order ID');
+    }
+
+    // Tìm order
     const order = await this.orderModel.findById(orderId);
     if (!order) throw new NotFoundException('Order not found');
 
+    // Kiểm tra quyền
     const isOwner = order.user.toString() === user._id.toString();
     const isAdmin = user.role.name === 'SUPER_ADMIN';
-
     if (!isAdmin && (!isOwner || order.status !== 'pending')) {
       throw new ForbiddenException('Bạn không có quyền sửa đơn hàng này');
     }
 
-    const items = dto.items.map(item => ({
-      book: new mongoose.Types.ObjectId(item.book),
-      quantity: item.quantity,
-      price: item.price,
-    }));
-    order.items = items;
-    order.totalAmount = this.calculateTotalPrice(dto.items);
+    // Kiểm tra items không rỗng
+    if (!dto.items || dto.items.length === 0) {
+      throw new BadRequestException('Items array cannot be empty');
+    }
+
+    // SỬA: Chỉ sử dụng một mảng orderItems, bỏ mảng items rỗng
+    const orderItems: { book: Types.ObjectId; quantity: number; price: number }[] = [];
+    let totalAmount = 0;
+    for (const item of dto.items) {
+      if (!mongoose.Types.ObjectId.isValid(item.book)) {
+        throw new BadRequestException(`Invalid book ID: ${item.book}`);
+      }
+      const book = await this.bookModel.findById(item.book);
+      if (!book) {
+        throw new NotFoundException(`Book ${item.book} not found`);
+      }
+      if (book.stock < item.quantity) {
+        throw new BadRequestException(
+          `Insufficient stock for book ${book.name}. Available: ${book.stock}, Requested: ${item.quantity}`,
+        );
+      }
+      const price = book.price;
+      if (!price || price <= 0) {
+        throw new BadRequestException(`Invalid price for book ${book.name}`);
+      }
+      totalAmount += price * item.quantity;
+      orderItems.push({
+        book: new Types.ObjectId(item.book),
+        quantity: item.quantity,
+        price, // Lấy từ book.price
+      });
+      book.stock -= item.quantity;
+      await book.save();
+    }
+
+    // SỬA: Gán orderItems vào order.items
+    order.items = orderItems;
+    order.totalAmount = totalAmount;
     order.updatedBy = { _id: new Types.ObjectId(user._id), email: user.email };
 
-    return order.save();
+    return (await order.save()).populate('user', '_id email');
   }
 
   // Update status (dành cho user khi status = pending, admin bất kể trạng thái)

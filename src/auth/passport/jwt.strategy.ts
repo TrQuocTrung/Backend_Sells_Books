@@ -5,6 +5,7 @@ import { BadRequestException, Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { IUser } from 'src/users/user.interface';
 import { RoleService } from 'src/role/role.service';
+import mongoose from 'mongoose';
 
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy) {
@@ -24,7 +25,9 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
         // cần gán thêm permissions vào req.user
         const userRole = role as unknown as { _id: string; name: string }
         const temp = (await this.roleService.findOne(userRole._id)).toObject();
-
+        if (!userRole?._id || !mongoose.Types.ObjectId.isValid(userRole._id)) {
+            throw new BadRequestException('Invalid role ID in token payload');
+        }
         if (!temp) {
             throw new BadRequestException("Role không tồn tại trong hệ thống");
         }

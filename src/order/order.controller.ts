@@ -1,16 +1,18 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, Query, Req } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, Query, Req, ValidationPipe, UseFilters, BadRequestException, UseGuards } from '@nestjs/common';
 import { OrderService } from './order.service';
 import { CreateOrderDto } from './dto/create-order.dto';
 import { UpdateOrderDto, UpdateOrderItemsDto, UpdateOrderStatusDto } from './dto/update-order.dto';
 import { IUser } from 'src/users/user.interface';
 import { ResponseMessage, User } from 'src/decotator/customize';
+import { HttpExceptionFilter } from 'src/core/http-exception.filter';
+import { JwtAuthGuard } from 'src/auth/jwt-auth.guard';
 
 @Controller('order')
 export class OrderController {
   constructor(private readonly orderService: OrderService) { }
 
   @Post()
-  create(@Body() createOrderDto: CreateOrderDto, @User() user: IUser) {
+  create(@Body(new ValidationPipe({ whitelist: true, transform: true })) createOrderDto: CreateOrderDto, @User() user: IUser) {
     return this.orderService.create(createOrderDto, user);
   }
 
@@ -20,7 +22,16 @@ export class OrderController {
     @Query() qs: string) {
     return this.orderService.findAll(+currentPage, +limit, qs);
   }
-
+  // Lấy danh sách đơn hàng của người dùng hiện tại
+  @Get('/my-orders')
+  @UseGuards(JwtAuthGuard)
+  @UseFilters(new HttpExceptionFilter())
+  async getMyOrders(@User() user: IUser) {
+    if (!user._id) {
+      throw new BadRequestException('User ID không tồn tại');
+    }
+    return await this.orderService.findOrdersByUser(user._id);
+  }
   @Get(':id')
   findOne(@Param('id') id: string) {
     return this.orderService.findOne(id);
@@ -40,7 +51,7 @@ export class OrderController {
   @Patch(':id/items')
   updateItems(
     @Param('id') id: string,
-    @Body() dto: UpdateOrderItemsDto,
+    @Body(new ValidationPipe({ whitelist: true, transform: true })) dto: UpdateOrderItemsDto,
     @User() user: IUser,
   ) {
     return this.orderService.updateItems(id, dto, user);
@@ -57,9 +68,5 @@ export class OrderController {
     return this.orderService.updateStatus(id, dto, user);
   }
 
-  // Lấy danh sách đơn hàng của người dùng hiện tại
-  @Get('my-orders')
-  async getMyOrders(@User() user: IUser) {
-    return await this.orderService.findOrdersByUser(user._id);
-  }
+
 }

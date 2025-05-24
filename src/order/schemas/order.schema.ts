@@ -13,8 +13,6 @@ class OrderItem {
     @Prop({ required: true })
     quantity: number;
 
-    @Prop({ required: true })
-    price: number; // Giá tại thời điểm đặt hàng
 }
 const OrderItemSchema = SchemaFactory.createForClass(OrderItem);
 

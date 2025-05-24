@@ -43,22 +43,27 @@ export class UsersService {
     return result;
   }
   async register(user: RegisterUserDto) {
-    const { username, email, password, age, gender, address } = user;
+    const { username, email, password, profile } = user;
+
     await this.checkExists('email', email);
     await this.checkExists('username', username);
 
-    //fetch user role
-    //const userRole = await this.roleModel.findOne({ name: USER_ROLE });
+    // Gán mặc định role là 'user'
+    const userRole = await this.roleModel.findOne({ name: 'NORMAL_USER' });
+    if (!userRole) {
+      throw new Error('Role "user" không tồn tại');
+    }
 
     const hashPassword = this.getHashPassword(password);
-    let newRegister = await this.userModel.create({
-      username, email,
+
+    const newRegister = await this.userModel.create({
+      username,
+      email,
       password: hashPassword,
-      age,
-      gender,
-      address,
-      role: "User"
-    })
+      profile,
+      role: userRole._id,
+    });
+
     return newRegister;
   }
 
@@ -101,7 +106,7 @@ export class UsersService {
     return await this.userModel.findOne({
       _id: id
     })
-      .select("-password");
+      .select("-password").populate('role', { name: 1 });
   }
 
   async update(id: string, updateUserDto: UpdateUserDto, user: IUser) {

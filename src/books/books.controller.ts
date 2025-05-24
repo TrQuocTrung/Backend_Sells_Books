@@ -26,8 +26,10 @@ export class BooksController {
     @UploadedFile() file: Express.Multer.File,
   ) {
     if (!file) {
+      console.log('File object:', file);
       throw new BadRequestException('No file uploaded');
     }
+    console.log('Uploaded file:', file);
     const updatedBook = await this.booksService.updateBookImage(bookId, file.filename);
     return updatedBook;
   }

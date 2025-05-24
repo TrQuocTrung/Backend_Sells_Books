@@ -38,6 +38,9 @@ export class BooksService {
   }
   async updateBookImage(bookId: string, imageFileName: string) {
     // Kiểm tra book có tồn tại
+    if (!imageFileName) {
+      throw new BadRequestException('Image filename is missing');
+    }
     const book = await this.bookModel.findById(bookId);
     if (!book) {
       // Xóa file ảnh đã upload vì book không tồn tại
@@ -47,11 +50,10 @@ export class BooksService {
       }
       throw new NotFoundException('Book not found');
     }
-
-    // Cập nhật trường ảnh
-    book.image = imageFileName;
-    await book.save();
-    return book;
+    return await this.bookModel.updateOne(
+      { _id: bookId },
+      { $set: { image: imageFileName, updatedAt: new Date() } }
+    );
   }
 
   async findAll(currentPage: number, limit: number, qs: string) {

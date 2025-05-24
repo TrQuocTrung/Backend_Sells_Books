@@ -13,5 +13,8 @@ import { MulterConfigService } from 'src/files/multer.config';
   }),],
   controllers: [BooksController],
   providers: [BooksService],
+  exports: [
+    MongooseModule
+  ]
 })
 export class BooksModule { }

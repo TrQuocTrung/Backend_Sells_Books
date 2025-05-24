@@ -1,20 +1,15 @@
-import { IsArray, IsNotEmpty, IsNumber, IsPositive, IsString, ValidateNested } from 'class-validator';
+import { IsArray, IsNotEmpty, IsNumber, IsPositive, IsString, Min, ValidateNested } from 'class-validator';
 import { Type } from 'class-transformer';
 
 class OrderItemDto {
-    @IsNotEmpty()
+    @IsNotEmpty({ message: 'Book ID không được để trống' })
     @IsString()
-    book: string; // id sách dạng string
+    book: string;
 
-    @IsNotEmpty()
-    @IsNumber()
-    @IsPositive()
+    @IsNotEmpty({ message: 'Số lượng không được để trống' })
+    @IsNumber({}, { message: 'Số lượng phải là số' })
+    @Min(1, { message: 'Số lượng phải lớn hơn 0' })
     quantity: number;
-
-    @IsNotEmpty()
-    @IsNumber()
-    @IsPositive()
-    price: number; // Giá tại thời điểm đặt hàng
 }
 
 export class CreateOrderDto {
