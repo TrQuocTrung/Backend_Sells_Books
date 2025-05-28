@@ -70,6 +70,7 @@ export class AuthService {
     }
 
     async register(user: RegisterUserDto) {
+
         let newUser = await this.usersService.register(user);
         return {
             _id: newUser?._id,

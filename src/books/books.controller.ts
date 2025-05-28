@@ -2,7 +2,7 @@ import { Controller, Get, Post, Body, Patch, Param, Delete, Query, UseIntercepto
 import { BooksService } from './books.service';
 import { CreateBookDto } from './dto/create-book.dto';
 import { UpdateBookDto } from './dto/update-book.dto';
-import { User } from 'src/decotator/customize';
+import { Public, ResponseMessage, User } from 'src/decotator/customize';
 import { IUser } from 'src/users/user.interface';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { HttpExceptionFilter } from 'src/core/http-exception.filter';
@@ -14,11 +14,16 @@ export class BooksController {
   @Post()
   @UseInterceptors(FileInterceptor('fileUpload'))
   @UseFilters(new HttpExceptionFilter())
-  async create(@Body(new ValidationPipe({ whitelist: true, transform: true })) createBookDto: CreateBookDto, @User() user: IUser) {
-    const createdBook = await this.booksService.create(createBookDto, user);
+  async create(@Body(new ValidationPipe({ whitelist: true, transform: true }))
+  createBookDto: CreateBookDto,
+    @User() user: IUser,
+    @UploadedFile() file: Express.Multer.File,
+  ) {
+    const imageFileName = file?.filename ?? null;
+    const createdBook = await this.booksService.create(createBookDto, user, imageFileName);
     return createdBook;
   }
-  // books.controller.ts
+  // books.controller.ts //Upload image for book
   @Post(':bookId/upload-image')
   @UseInterceptors(FileInterceptor('fileUpload'))
   async uploadBookImage(
@@ -33,15 +38,17 @@ export class BooksController {
     const updatedBook = await this.booksService.updateBookImage(bookId, file.filename);
     return updatedBook;
   }
-
+  @Public()
   @Get()
+  @ResponseMessage("Get all books")
   findAll(@Query("current") currentPage: string,
     @Query("pageSize") limit: string,
-    @Query() qs: string) {
+    @Query() qs: Record<string, any>) {
     return this.booksService.findAll(+currentPage, +limit, qs);
   }
-
+  @Public()
   @Get(':id')
+  @ResponseMessage("Get book by id")
   findOne(@Param('id') id: string) {
     return this.booksService.findOne(id);
   }

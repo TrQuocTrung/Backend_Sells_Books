@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Post, Req, Res, UseGuards } from '@nestjs/common';
+import { BadRequestException, Body, Controller, Get, HttpException, InternalServerErrorException, Post, Req, Res, UseGuards } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { Response } from 'express';
 import { LocalAuthGuard } from './local-auth.guard';
@@ -15,19 +15,69 @@ export class AuthController {
     private roleService: RoleService
   ) { }
   @Public()
+  @ResponseMessage("Login User")
   @Post('/login')
   @UseGuards(LocalAuthGuard)
-  handleLogin(
+  async handleLogin(
     @Req() req,
     @Res({ passthrough: true }) response: Response
+
   ) {
-    return this.authService.login(req.user, response);
+    try {
+      const result = await this.authService.login(req.user, response);
+      return response.status(200).json({
+        statusCode: 200,
+        message: "Đăng nhập thành công",
+        data: result
+      });
+    } catch (error) {
+      // Nếu lỗi là BadRequestException thì trả về lỗi client, còn lỗi khác trả về 500
+      if (error instanceof BadRequestException) {
+        return {
+          statusCode: 400,
+          message: error.message,
+        };
+      }
+      // Log lỗi thật để debug
+      console.error(error);
+      return {
+        statusCode: 500,
+        message: error,
+      };
+    }
   }
   @Public()
   @ResponseMessage("Register a new user")
   @Post('/register')
-  handleRegister(@Body() registerUserDto: RegisterUserDto) {
-    return this.authService.register(registerUserDto);
+  async handleRegister(
+    @Body() registerUserDto: RegisterUserDto,
+
+  ) {
+    try {
+      const result = await this.authService.register(registerUserDto);
+      return {
+        statusCode: 200,
+        message: "Đăng Ký Tài Khoản thành công",
+        data: {
+          _id: result._id,
+          createdAt: result.createdAt,
+        },
+      };
+    } catch (error) {
+      // Nếu lỗi là BadRequestException thì trả về lỗi client, còn lỗi khác trả về 500
+      if (error instanceof BadRequestException) {
+        return {
+          statusCode: 400,
+          message: error.message,
+        };
+      }
+      // Log lỗi thật để debug
+      console.error(error);
+      return {
+        statusCode: 500,
+        message: error,
+      };
+    }
   }
 
   @ResponseMessage("Get user information")
@@ -39,10 +89,21 @@ export class AuthController {
   }
   @ResponseMessage("Logout User")
   @Post('/logout')
-  handleLogout(
+  async handleLogout(
     @Res({ passthrough: true }) response: Response,
     @User() user: IUser
   ) {
-    return this.authService.logout(response, user);
+    try {
+      await this.authService.logout(response, user);
+
+      return {
+        message: 'Đăng xuất thành công',
+        success: true,
+      };
+    } catch (error) {
+      console.error('Logout error:', error);
+      throw new InternalServerErrorException('Đăng xuất thất bại. Vui lòng thử lại sau.');
+    }
   }
+
 }

@@ -1,5 +1,5 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
-import { CreateBookDto } from './dto/create-book.dto';
+import { CreateBookDto, IBookQueryResult } from './dto/create-book.dto';
 import { UpdateBookDto } from './dto/update-book.dto';
 import { InjectModel } from '@nestjs/mongoose';
 import { Book, BookDocument } from './schemas/book.schema';
@@ -8,11 +8,16 @@ import { IUser } from 'src/users/user.interface';
 import aqp from 'api-query-params';
 import * as path from 'path';
 import * as fs from 'fs';
+import { parse } from 'qs';
+import { Category } from 'src/category/schemas/category.schema';
+
 @Injectable()
 export class BooksService {
   constructor(
     @InjectModel(Book.name)
     private bookModel: SoftDeleteModel<BookDocument>,
+    @InjectModel(Category.name)
+    private categoryModel: SoftDeleteModel<BookDocument>,
   ) { }
   private validatePrice(price: number) {
     if (price <= 0) {
@@ -56,39 +61,80 @@ export class BooksService {
     );
   }
 
-  async findAll(currentPage: number, limit: number, qs: string) {
-    const { filter, sort, population } = aqp(qs);
+  async findAll(currentPage: number, limit: number, qs: Record<string, any>): Promise<IBookQueryResult> {
+    const { filter, sort } = aqp(qs);
     delete filter.current;
     delete filter.pageSize;
+    const categoryQuery = (qs.category as string) || '';
+    delete filter.category;
+    filter.isDeleted = false;
+    try {
+      // Nếu có truy vấn danh mục, tìm danh sách ID của các danh mục phù hợp
+      if (categoryQuery) {
+        const matchedCategories = await this.categoryModel
+          .find({
+            name: { $regex: categoryQuery, $options: 'i' },
+            isDeleted: false, // Chỉ lấy danh mục chưa bị soft delete
+          })
+          .select('_id')
+          .lean();
+        const matchedCategoryIds = matchedCategories.map((c) => c._id);
+        console.log('matchedCategoryIds:', matchedCategoryIds);
+        if (matchedCategoryIds.length === 0) {
+          return {
+            meta: {
+              current: currentPage,
+              pageSize: limit,
+              pages: 0,
+              total: 0,
+            },
+            result: [],
+          };
+        }
+        filter.categories = { $in: matchedCategoryIds };
+      }
 
-    let offset = (+currentPage - 1) * (+limit);
-    let defaultLimit = +limit ? +limit : 10;
+      const offset = (currentPage - 1) * limit;
+      const defaultLimit = limit || 10;
 
-    const totalItems = (await this.bookModel.find(filter)).length;
-    const totalPages = Math.ceil(totalItems / defaultLimit);
+      const totalItems = await this.bookModel.countDocuments(filter);
+      const totalPages = Math.ceil(totalItems / defaultLimit);
+
+      const result = await this.bookModel
+        .find(filter)
+        .skip(offset)
+        .limit(defaultLimit)
+        .sort(sort as any)
+        .populate({ path: 'categories', select: '_id name', match: { isDeleted: false } })
+        .lean()
+        .exec();
+
+      // Chuyển đổi _id thành chuỗi
+      const formattedResult = result.map((book) => ({
+        ...book,
+        _id: book._id.toString(),
+        categories: book.categories.map((cat: any) => ({
+          ...cat,
+          _id: cat._id.toString(),
+        })),
+      }));
 
 
-    const result = await this.bookModel.find(filter)
-      .skip(offset)
-      .limit(defaultLimit)
-      .sort(sort as any)
-      .populate(population)
-      .exec();
-
-
-    return {
-      meta: {
-        current: currentPage, //trang hiện tại
-        pageSize: limit, //số lượng bản ghi đã lấy
-        pages: totalPages,  //tổng số trang với điều kiện query
-        total: totalItems // tổng số phần tử (số bản ghi)
-      },
-      result //kết quả query
+      return {
+        meta: {
+          current: currentPage,
+          pageSize: limit,
+          pages: totalPages,
+          total: totalItems,
+        },
+        result: formattedResult,
+      };
+    } catch (error) {
+      throw new BadRequestException(`Lỗi khi truy vấn sách: ${error.message}`);
     }
   }
-
   async findOne(id: string) {
-    return await this.bookModel.findById(id)
+    return await this.bookModel.findById(id).populate({ path: 'categories', select: '_id name' })
   }
   async update(id: string, updateBookDto: UpdateBookDto, user: IUser, imageFileName?: string) {
     if (updateBookDto.price !== undefined) {

@@ -43,7 +43,7 @@ export class CategoryService {
       .skip(offset)
       .limit(defaultLimit)
       .sort(sort as any)
-      .populate(population)
+      .populate({ path: 'books' })
       .select(projection as any)
       .exec();
 

@@ -3,7 +3,7 @@ import { CategoryService } from './category.service';
 import { CreateCategoryDto } from './dto/create-category.dto';
 import { UpdateCategoryDto } from './dto/update-category.dto';
 import { IUser } from 'src/users/user.interface';
-import { ResponseMessage, User } from 'src/decotator/customize';
+import { Public, ResponseMessage, User } from 'src/decotator/customize';
 
 @Controller('category')
 export class CategoryController {
@@ -15,6 +15,7 @@ export class CategoryController {
     return this.categoryService.create(createCategoryDto, user);
   }
 
+  @Public()
   @Get()
   @ResponseMessage("Fetch all category")
   findAll(

@@ -1,4 +1,4 @@
-import { BadRequestException, Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable, InternalServerErrorException } from '@nestjs/common';
 import { CreateUserDto, RegisterUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { InjectModel } from '@nestjs/mongoose';
@@ -53,18 +53,22 @@ export class UsersService {
     if (!userRole) {
       throw new Error('Role "user" không tồn tại');
     }
+    try {
+      const hashPassword = this.getHashPassword(password);
 
-    const hashPassword = this.getHashPassword(password);
+      const newRegister = await this.userModel.create({
+        username,
+        email,
+        password: hashPassword,
+        profile,
+        role: userRole._id,
+      });
 
-    const newRegister = await this.userModel.create({
-      username,
-      email,
-      password: hashPassword,
-      profile,
-      role: userRole._id,
-    });
+      return newRegister;
+    } catch (error) {
+      throw new InternalServerErrorException('Đăng ký thất bại. Vui lòng thử lại.');
+    }
 
-    return newRegister;
   }
 
   async findAll(currentPage: number, limit: number, qs: string) {

@@ -1,5 +1,6 @@
 import { Type } from 'class-transformer';
 import { IsString, IsNotEmpty, IsNumber, IsOptional, IsArray } from 'class-validator';
+import { Types } from 'mongoose';
 
 export class CreateBookDto {
     @IsString()
@@ -29,10 +30,27 @@ export class CreateBookDto {
     @IsOptional()
     soldQuantity?: number;
 
-    @IsArray()
     @IsString({ each: true })
     @IsOptional()
-    categories?: string[];
+    categories?: Types.ObjectId[];
     @IsOptional()
     image: string
+}
+export interface IBookQueryResult {
+    meta: {
+        current: number;
+        pageSize: number;
+        pages: number;
+        total: number;
+    };
+    result: IBook[];
+}
+export interface IBook {
+    _id: string;
+    name: string;
+    author: string;
+    image: string;
+    description: string;
+    price?: number;
+    categories: { _id: string; name: string }[];
 }

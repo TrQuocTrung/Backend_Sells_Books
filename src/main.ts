@@ -7,6 +7,7 @@ import { Mongoose } from 'mongoose';
 import { MongooseModule } from '@nestjs/mongoose';
 import { ValidationPipe, VersioningType } from '@nestjs/common';
 import { JwtAuthGuard } from './auth/jwt-auth.guard';
+import { TransformInterceptor } from './core/transform.interceptor';
 async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
   app.useStaticAssets(join(__dirname, '..', 'public'));
@@ -14,6 +15,14 @@ async function bootstrap() {
   const configService = app.get(ConfigService);
   //Config Get Port .env
   const port = configService.get<number>('PORT');
+  app.enableCors(
+    {
+      "origin": true,
+      "methods": "GET,HEAD,PUT,PATCH,POST,DELETE",
+      "preflightContinue": false,
+      credentials: true
+    }
+  );
 
   const reflector = app.get(Reflector);
   app.setGlobalPrefix('api');
@@ -22,6 +31,7 @@ async function bootstrap() {
     defaultVersion: ['1', '2'] //v1, v2
   });
   app.useGlobalGuards(new JwtAuthGuard(reflector));
+  app.useGlobalInterceptors(new TransformInterceptor(reflector));
   app.useGlobalPipes(new ValidationPipe({
     whitelist: true,
     transform: true,  // Bắt buộc phải có
