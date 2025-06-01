@@ -172,9 +172,7 @@ export class OrderService {
       .sort({ createdAt: -1 }) // Sắp xếp mới nhất trước
       .exec();
   }
-  // Update toàn bộ items (dành cho user khi status = pending, admin bất kể trạng thái)
   async updateItems(orderId: string, dto: UpdateOrderItemsDto, user: IUser) {
-
     // Kiểm tra orderId hợp lệ
     if (!mongoose.Types.ObjectId.isValid(orderId)) {
       throw new BadRequestException('Invalid order ID');
@@ -196,9 +194,19 @@ export class OrderService {
       throw new BadRequestException('Items array cannot be empty');
     }
 
-    // SỬA: Chỉ sử dụng một mảng orderItems, bỏ mảng items rỗng
+    // Trả lại stock cho các sách trong đơn hàng cũ trước
+    for (const oldItem of order.items) {
+      const oldBook = await this.bookModel.findById(oldItem.book);
+      if (oldBook) {
+        oldBook.stock += oldItem.quantity;
+        await oldBook.save();
+      }
+    }
+
+    // Tạo mảng orderItems mới và tính totalAmount
     const orderItems: { book: Types.ObjectId; quantity: number; price: number }[] = [];
     let totalAmount = 0;
+
     for (const item of dto.items) {
       if (!mongoose.Types.ObjectId.isValid(item.book)) {
         throw new BadRequestException(`Invalid book ID: ${item.book}`);
@@ -217,22 +225,26 @@ export class OrderService {
         throw new BadRequestException(`Invalid price for book ${book.name}`);
       }
       totalAmount += price * item.quantity;
+
       orderItems.push({
         book: new Types.ObjectId(item.book),
         quantity: item.quantity,
-        price, // Lấy từ book.price
+        price,
       });
+
+      // Giảm stock của sách theo số lượng mới
       book.stock -= item.quantity;
       await book.save();
     }
 
-    // SỬA: Gán orderItems vào order.items
+    // Cập nhật order
     order.items = orderItems;
     order.totalAmount = totalAmount;
     order.updatedBy = { _id: new Types.ObjectId(user._id), email: user.email };
 
     return (await order.save()).populate('user', '_id email');
   }
+
 
   // Update status (dành cho user khi status = pending, admin bất kể trạng thái)
   async updateStatus(orderId: string, dto: UpdateOrderStatusDto, user: IUser) {
@@ -251,5 +263,13 @@ export class OrderService {
 
     return order.save();
   }
+  async updateOrderStatus(orderId: string, status: string) {
+    // Tìm đơn hàng theo orderId
+    const order = await this.orderModel.findById({ orderId });
+    if (!order) throw new Error('Order not found');
 
+    order.status = status;
+    await order.save();
+    return order;
+  }
 }

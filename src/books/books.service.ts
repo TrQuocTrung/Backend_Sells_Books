@@ -88,7 +88,7 @@ export class BooksService {
               pages: 0,
               total: 0,
             },
-            result: [],
+            results: [],
           };
         }
         filter.categories = { $in: matchedCategoryIds };
@@ -100,7 +100,7 @@ export class BooksService {
       const totalItems = await this.bookModel.countDocuments(filter);
       const totalPages = Math.ceil(totalItems / defaultLimit);
 
-      const result = await this.bookModel
+      const results = await this.bookModel
         .find(filter)
         .skip(offset)
         .limit(defaultLimit)
@@ -110,7 +110,7 @@ export class BooksService {
         .exec();
 
       // Chuyển đổi _id thành chuỗi
-      const formattedResult = result.map((book) => ({
+      const formattedResult = results.map((book) => ({
         ...book,
         _id: book._id.toString(),
         categories: book.categories.map((cat: any) => ({
@@ -127,7 +127,7 @@ export class BooksService {
           pages: totalPages,
           total: totalItems,
         },
-        result: formattedResult,
+        results: formattedResult,
       };
     } catch (error) {
       throw new BadRequestException(`Lỗi khi truy vấn sách: ${error.message}`);
@@ -140,22 +140,33 @@ export class BooksService {
     if (updateBookDto.price !== undefined) {
       this.validatePrice(updateBookDto.price);
     }
+
     const book = await this.bookModel.findById(id);
     if (!book) {
       throw new NotFoundException('Book not found');
     }
-    const updated = await this.bookModel.updateOne(
-      { _id: id },
-      {
-        ...updateBookDto,
-        updatedBy: {
-          _id: user._id,
-          email: user.email
-        }
+
+    // Chuẩn bị dữ liệu cập nhật
+    const updateData: any = {
+      ...updateBookDto,
+      updatedBy: {
+        _id: user._id,
+        email: user.email,
       },
-      { new: true }
+    };
+
+    // Chỉ set ảnh nếu có ảnh mới
+    if (imageFileName) {
+      updateData.image = imageFileName;
+    }
+
+    // Thực hiện cập nhật
+    const result = await this.bookModel.updateOne(
+      { _id: id },
+      { $set: updateData }
     );
-    return updated;
+
+    return result;
   }
 
   async remove(id: string, user: IUser) {

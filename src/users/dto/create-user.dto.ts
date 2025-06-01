@@ -1,5 +1,5 @@
 import { Type } from "class-transformer";
-import { IsEmail, IsNotEmpty, IsNumber, IsString, ValidateNested } from "class-validator";
+import { IsEmail, IsNotEmpty, IsNumber, IsOptional, IsString, ValidateNested } from "class-validator";
 
 class Profile {
     @IsNotEmpty()
@@ -11,8 +11,9 @@ class Profile {
     @IsNotEmpty()
     @IsNumber({}, { message: "Tuổi Bạn Nhập Phải Là Số " })
     age: number
-    @IsNumber()
-    phone: number
+    @IsOptional()
+    @IsString()
+    phone: string
 }
 export class CreateUserDto {
     @IsNotEmpty()
@@ -37,8 +38,6 @@ export class RegisterUserDto {
     @IsEmail()
     @IsNotEmpty({ message: "Email Không Được Để Trống" })
     email: string
-    // @IsNotEmpty()
-    // role: string
     @IsString()
     @IsNotEmpty({ message: "Mật Khẩu Không Được Để Trống" })
     password: string

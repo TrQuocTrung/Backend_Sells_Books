@@ -3,7 +3,7 @@ import { OrderService } from './order.service';
 import { CreateOrderDto } from './dto/create-order.dto';
 import { UpdateOrderDto, UpdateOrderItemsDto, UpdateOrderStatusDto } from './dto/update-order.dto';
 import { IUser } from 'src/users/user.interface';
-import { ResponseMessage, User } from 'src/decotator/customize';
+import { ResponseMessage, SkipCheckPermission, User } from 'src/decotator/customize';
 import { HttpExceptionFilter } from 'src/core/http-exception.filter';
 import { JwtAuthGuard } from 'src/auth/jwt-auth.guard';
 
@@ -23,6 +23,7 @@ export class OrderController {
     return this.orderService.findAll(+currentPage, +limit, qs);
   }
   // Lấy danh sách đơn hàng của người dùng hiện tại
+  @SkipCheckPermission()
   @Get('/my-orders')
   @UseGuards(JwtAuthGuard)
   @UseFilters(new HttpExceptionFilter())
@@ -36,7 +37,7 @@ export class OrderController {
   findOne(@Param('id') id: string) {
     return this.orderService.findOne(id);
   }
-
+  @SkipCheckPermission()
   @Patch(':id')
   update(@Param('id') id: string, @Body() updateOrderDto: UpdateOrderDto) {
     return this.orderService.update(+id, updateOrderDto);
@@ -67,6 +68,4 @@ export class OrderController {
   ) {
     return this.orderService.updateStatus(id, dto, user);
   }
-
-
 }

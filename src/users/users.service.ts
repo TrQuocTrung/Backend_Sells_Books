@@ -75,7 +75,23 @@ export class UsersService {
     const { filter, sort, population } = aqp(qs);
     delete filter.current;
     delete filter.pageSize;
+    Object.keys(filter).forEach((key) => {
+      const value = filter[key];
 
+      if (key.includes('createdAt') && typeof value === 'object') {
+        // Trường hợp createdAt>= và createdAt<=
+        const newObj: any = {};
+        if (value['$gte']) newObj['$gte'] = new Date(value['$gte']);
+        if (value['$lte']) newObj['$lte'] = new Date(value['$lte']);
+        filter[key] = newObj;
+      } else if (
+        typeof value === 'string' ||
+        typeof value === 'number' ||
+        typeof value === 'boolean'
+      ) {
+        filter[key] = { $regex: value, $options: 'i' };
+      }
+    });
     let offset = (+currentPage - 1) * (+limit);
     let defaultLimit = +limit ? +limit : 10;
 
@@ -83,7 +99,7 @@ export class UsersService {
     const totalPages = Math.ceil(totalItems / defaultLimit);
 
 
-    const result = await this.userModel.find(filter)
+    const results = await this.userModel.find(filter)
       .skip(offset)
       .limit(defaultLimit)
       .sort(sort as any)
@@ -99,7 +115,7 @@ export class UsersService {
         pages: totalPages,  //tổng số trang với điều kiện query
         total: totalItems // tổng số phần tử (số bản ghi)
       },
-      result //kết quả query
+      results //kết quả query
     }
   }
 

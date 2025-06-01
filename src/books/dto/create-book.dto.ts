@@ -43,7 +43,7 @@ export interface IBookQueryResult {
         pages: number;
         total: number;
     };
-    result: IBook[];
+    results: IBook[];
 }
 export interface IBook {
     _id: string;

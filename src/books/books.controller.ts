@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, Query, UseInterceptors, UseFilters, UploadedFile, ValidationPipe, BadRequestException } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, Query, UseInterceptors, UseFilters, UploadedFile, ValidationPipe, BadRequestException, Res } from '@nestjs/common';
 import { BooksService } from './books.service';
 import { CreateBookDto } from './dto/create-book.dto';
 import { UpdateBookDto } from './dto/update-book.dto';
@@ -6,6 +6,7 @@ import { Public, ResponseMessage, User } from 'src/decotator/customize';
 import { IUser } from 'src/users/user.interface';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { HttpExceptionFilter } from 'src/core/http-exception.filter';
+import { Response } from 'express';
 
 @Controller('books')
 export class BooksController {
@@ -18,10 +19,15 @@ export class BooksController {
   createBookDto: CreateBookDto,
     @User() user: IUser,
     @UploadedFile() file: Express.Multer.File,
+    @Res({ passthrough: true }) response: Response
   ) {
     const imageFileName = file?.filename ?? null;
     const createdBook = await this.booksService.create(createBookDto, user, imageFileName);
-    return createdBook;
+    return response.status(201).json({
+      statusCode: 201,
+      message: "Tạo sách thành công",
+      data: createdBook
+    });
   }
   // books.controller.ts //Upload image for book
   @Post(':bookId/upload-image')

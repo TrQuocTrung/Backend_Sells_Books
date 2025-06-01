@@ -36,10 +36,10 @@ export class DatabasesService {
                 await this.permissionModel.insertMany(INIT_PERMISSIONS);
                 //bulk create
             }
-
             // create role
             if (countRole === 0) {
                 const permissions = await this.permissionModel.find({}).select("_id");
+                const permissions_user = await this.permissionModel.find({ "module": "ORDER" })
                 await this.roleModel.insertMany([
                     {
                         name: ADMIN_ROLE,
@@ -51,7 +51,7 @@ export class DatabasesService {
                         name: USER_ROLE,
                         description: "Người dùng/Ứng viên sử dụng hệ thống",
                         isActive: true,
-                        permissions: [] //không set quyền, chỉ cần add ROLE
+                        permissions: permissions_user
                     }
                 ]);
             }

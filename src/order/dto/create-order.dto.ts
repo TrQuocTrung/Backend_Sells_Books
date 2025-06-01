@@ -13,7 +13,6 @@ class OrderItemDto {
 }
 
 export class CreateOrderDto {
-    @IsArray()
     @ValidateNested({ each: true })
     @Type(() => OrderItemDto)
     items: OrderItemDto[];

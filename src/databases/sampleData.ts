@@ -640,5 +640,21 @@ export const INIT_PERMISSIONS = [
         "isDeleted": false,
         "deletedAt": null,
         "__v": 0
+    },
+    {
+        "_id": "68386e9389a3407de75ddaf2",
+        "name": "Checkout order",
+        "apiPath": "/api/v1/checkout-vnpay/create-vnpay-url",
+        "method": "GET",
+        "module": "CHECKOUT",
+        "createdBy": {
+            "_id": "682eee6c9effb851a117b62f",
+            "email": "admin@gmail.com"
+        },
+        "isDeleted": false,
+        "deletedAt": null,
+        "createdAt": "2025-05-29T14:26:27.056Z",
+        "updatedAt": "2025-05-29T14:26:27.056Z",
+        "__v": 0
     }
 ]

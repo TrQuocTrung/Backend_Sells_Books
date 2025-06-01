@@ -12,7 +12,7 @@ class Profile {
     @Prop()
     gender: string
     @Prop()
-    phone: number
+    phone: string
     @Prop()
     age: number
 }
