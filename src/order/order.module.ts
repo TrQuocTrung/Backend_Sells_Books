@@ -7,7 +7,7 @@ import { BooksModule } from 'src/books/books.module';
 
 @Module({
   imports: [
-    MongooseModule.forFeature([{ name: Order.name, schema: OrderSchema }]), BooksModule
+    MongooseModule.forFeature([{ name: Order.name, schema: OrderSchema }]), BooksModule,
   ],
   controllers: [OrderController],
   providers: [OrderService],

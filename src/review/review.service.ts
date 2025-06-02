@@ -55,11 +55,11 @@ export class ReviewService {
     const totalPages = Math.ceil(totalItems / defaultLimit);
 
 
-    const result = await this.reviewModel.find(filter)
+    const results = await this.reviewModel.find(filter)
       .skip(offset)
       .limit(defaultLimit)
       .sort(sort as any)
-      .populate(population)
+      .populate({ path: "book", select: 'name' })
       .exec();
 
 
@@ -70,7 +70,7 @@ export class ReviewService {
         pages: totalPages,  //tổng số trang với điều kiện query
         total: totalItems // tổng số phần tử (số bản ghi)
       },
-      result //kết quả query
+      results //kết quả query
     }
 
   }

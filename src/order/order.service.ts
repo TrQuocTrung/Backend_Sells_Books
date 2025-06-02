@@ -9,6 +9,7 @@ import mongoose, { Types } from 'mongoose';
 import aqp from 'api-query-params';
 import { Book, BookDocument } from 'src/books/schemas/book.schema';
 import { User } from 'src/decotator/customize';
+import { UserDocument } from 'src/users/schema/user.schema';
 
 @Injectable()
 export class OrderService {
@@ -104,11 +105,15 @@ export class OrderService {
     const totalPages = Math.ceil(totalItems / defaultLimit);
 
 
-    const result = await this.orderModel.find(filter)
+    const results = await this.orderModel.find(filter)
       .skip(offset)
       .limit(defaultLimit)
       .sort(sort as any)
-      .populate(population)
+      .populate([
+        ...(Array.isArray(population) ? population : []),
+        { path: 'user', select: '_id email ' },
+        { path: 'items.book', select: 'name price' }
+      ])
       .select(projection as any)
       .exec();
 
@@ -119,7 +124,7 @@ export class OrderService {
         pages: totalPages,  //tổng số trang với điều kiện query
         total: totalItems // tổng số phần tử (số bản ghi)
       },
-      result //kết quả query
+      results //kết quả query
     }
   }
 

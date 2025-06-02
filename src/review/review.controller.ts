@@ -2,7 +2,7 @@ import { Controller, Get, Post, Body, Patch, Param, Delete, Query } from '@nestj
 import { ReviewService } from './review.service';
 import { CreateReviewDto } from './dto/create-review.dto';
 import { UpdateReviewDto } from './dto/update-review.dto';
-import { User } from 'src/decotator/customize';
+import { Public, User } from 'src/decotator/customize';
 import { IUser } from 'src/users/user.interface';
 
 @Controller('review')
@@ -33,6 +33,7 @@ export class ReviewController {
   findOne(@Param('id') id: string) {
     return this.reviewService.findOne(id);
   }
+  @Public()
   @Get('book/:bookId')
   getReviewsByBook(@Param('bookId') bookId: string) {
     return this.reviewService.findReviewsByBook(bookId);

@@ -60,6 +60,7 @@ export class BooksController {
   }
 
   @Patch(':id')
+  @UseInterceptors(FileInterceptor('fileUpload'))
   update(@Param('id') id: string, @Body() updateBookDto: UpdateBookDto, @User() user: IUser, @UploadedFile() file: Express.Multer.File) {
     return this.booksService.update(id, updateBookDto, user, file?.filename);
   }

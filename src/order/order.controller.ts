@@ -17,6 +17,7 @@ export class OrderController {
   }
 
   @Get()
+  @ResponseMessage("Get All order")
   findAll(@Query("current") currentPage: string,
     @Query("pageSize") limit: string,
     @Query() qs: string) {
